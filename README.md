@@ -1,4 +1,4 @@
-# Soc-MartNet for Parabolic Equations and HJB Equations
+# SOC-MartNet for Parabolic Equations and HJB Equations
 
 This repository contains the source code for the paper: **SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit $\inf_{u \in U} H$ in Stochastic Optimal Controls**.
 
