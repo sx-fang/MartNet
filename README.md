@@ -50,14 +50,4 @@ If no `.ini` task files are found in `./taskfiles`, `runtask.py` will automatica
       primaryClass={math.NA},
       url={https://arxiv.org/abs/2405.03169}, 
 }
-
-@misc{cai2024martingaledeeplearninghigh,
-      title={Martingale deep learning for very high dimensional quasi-linear partial differential equations and stochastic optimal controls}, 
-      author={Wei Cai and Shuixin Fang and Wenzhong Zhang and Tao Zhou},
-      year={2024},
-      eprint={2408.14395},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/2408.14395}, 
-}
 ```
