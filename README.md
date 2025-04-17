@@ -35,13 +35,13 @@ To run the algorithm, execute:
 python runtask.py
 ```
 
-**Behavior of `runtask.py`:**  
-`runtask.py` starts the training process using parameters from either `default_config.ini` or any `.ini` task files located in the `./taskfiles` directory. All results and outputs are saved in the `./outputs` folder.  
+**Behavior of `runtask.py`:**  It starts the training process using parameters from either `default_config.ini` or any `.ini` task files located in the `./taskfiles` directory. All results and outputs are saved in the `./outputs` folder.  
 If no `.ini` task files are found in `./taskfiles`, `runtask.py` will automatically use `default_config.ini`. If `.ini` task files are present, `runtask.py` will execute the tasks defined in those files instead.
 
 ## Citation
+
 ```bibtex
-@misc{cai2025socmartnetmartingaleneuralnetwork,
+@misc{cai2025Socmartnet,
       title={SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit inf H in Stochastic Optimal Controls}, 
       author={Wei Cai and Shuixin Fang and Tao Zhou},
       year={2025},
@@ -51,3 +51,21 @@ If no `.ini` task files are found in `./taskfiles`, `runtask.py` will automatica
       url={https://arxiv.org/abs/2405.03169}, 
 }
 ```
+
+## Related Work
+
+This repository also includes the implementation of the martingale deep learning method proposed in the following preprint. This approach extends SOC-MartNet by introducing a derivative-free framework, enabling the efficient solution of HJB equations and quasi-linear parabolic PDEs in dimensions as high as 10,000.
+
+```bibtex
+@misc{cai2024Martingale,
+      title={Martingale deep learning for very high dimensional quasi-linear partial differential equations and stochastic optimal controls}, 
+      author={Wei Cai and Shuixin Fang and Wenzhong Zhang and Tao Zhou},
+      year={2024},
+      eprint={2408.14395},
+      archivePrefix={arXiv},
+      primaryClass={math.OC},
+      url={https://arxiv.org/abs/2408.14395}, 
+}
+```
+
+
