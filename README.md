@@ -1,6 +1,6 @@
 # SOC-MartNet for Parabolic Equations and HJB Equations
 
-This repository contains the source code for the paper: **SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit $\inf_{u \in U} H$ in Stochastic Optimal Controls**.
+This repository provides the source code for the numerical experiments presented in the paper: **SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit $\inf_{u \in U} H$ in Stochastic Optimal Controls**.
 
 The paper is coauthored by Wei Cai, Shuixin Fang, and Tao Zhou, and has been accepted by SIAM Journal on Scientific Computing.
 
@@ -41,7 +41,7 @@ If no `.ini` task files are found in `./taskfiles`, `runtask.py` will automatica
 ## Citation
 
 ```bibtex
-@misc{cai2025Socmartnet,
+@misc{cai2025socmartnet,
       title={SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit inf H in Stochastic Optimal Controls}, 
       author={Wei Cai and Shuixin Fang and Tao Zhou},
       year={2025},
