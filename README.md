@@ -54,7 +54,7 @@ If no `.ini` task files are found in `./taskfiles`, `runtask.py` will automatica
 
 ## Related Work
 
-This repository also includes the implementation of the martingale deep learning method proposed in the following preprint. This approach extends SOC-MartNet by introducing a derivative-free framework, enabling the efficient solution of HJB equations and quasi-linear parabolic PDEs in dimensions as high as 10,000.
+This repository also includes the implementation of the martingale deep learning method proposed in the following preprint. This approach extends SOC-MartNet by introducing a derivative-free method, enabling the efficient solution of HJB equations and quasi-linear parabolic PDEs in dimensions as high as 10,000.
 
 ```bibtex
 @misc{cai2024Martingale,
