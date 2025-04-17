@@ -2,7 +2,7 @@
 
 This repository contains the source code for the paper: **SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit $\inf_{u \in U} H$ in Stochastic Optimal Controls**.
 
-The paper is authored by Wei Cai, Shuixin Fang, and Tao Zhou, and has been accepted for publication in the SIAM Journal on Scientific Computing.
+The paper is coauthored by Wei Cai, Shuixin Fang, and Tao Zhou, and has been accepted by SIAM Journal on Scientific Computing.
 
 The preprint of the paper is available on arXiv: [https://arxiv.org/abs/2405.03169](https://arxiv.org/abs/2405.03169).
 
