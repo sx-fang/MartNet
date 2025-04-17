@@ -501,8 +501,11 @@ class DfSocMartNet(MartNet):
         deltam_vgrad = (vnext_ud - vt) / self.dt + f_path.detach()
 
         if compute_ugrad is True:
-            with torch.no_grad():
-                vnext_vd = self._v_next(t_next, x_next)
+            for p in self.vnn.parameters():
+                p.requires_grad = False
+            vnext_vd = self._v_next(t_next, x_next)
+            for p in self.vnn.parameters():
+                p.requires_grad = True
             deltam_ugrad = (vnext_vd - vt.detach()) / self.dt + f_path
         else:
             deltam_ugrad = None
@@ -549,7 +552,7 @@ class SocMartNet(MartNet):
         # The following approximates (mu_sys - mu_pil)^{\top} v_x using finite differences instead of automatic differentiation.
         # This approach is adopted because torch.autograd.grad() is incompatible with torch.nn.parallel.DistributedDataParallel (PyTorch 2.6).
         # See, https://pytorch.org/docs/2.6/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel
-        sz_diff = self.dt**2 # The size of the finite difference
+        sz_diff = self.dt**2  # The size of the finite difference
         musys_val = self.problem.mu_sys(t, xt, ut[:-1])
         mupil_val = self.problem.mu_pil(t, xt)
         delta_mu = musys_val - mupil_val
@@ -559,9 +562,14 @@ class SocMartNet(MartNet):
 
         deltam_vgrad = deltav + deltamu_vdx + fpath_mean.detach()
         if compute_ugrad is True:
-            with torch.no_grad():
-                vforw_ugrad = self.vnn(t, x_forw)
+            for p in self.vnn.parameters():
+                p.requires_grad = False
+            vforw_ugrad = self.vnn(t, x_forw)
+            for p in self.vnn.parameters():
+                p.requires_grad = True
+
             deltam_ugrad = (vforw_ugrad - vt.detach()) / sz_diff + fpath_mean
+            # print(list(self.unn.parameters()))
         else:
             deltam_ugrad = None
         return deltam_vgrad, deltam_ugrad
