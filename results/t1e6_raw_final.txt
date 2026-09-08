@@ -1,0 +1,5 @@
+SOCMartNet_HJBLQ_b1.0_delta0.2_delc0.3_1p_d100_te1.0_t1e6_wd10_d100_s0.csv|3500.0,52.48515,0.0018362834
+SOCMartNet_HJBLQ_b1.0_delta0.2_delc0.3_1p_d100_te1.0_t1e6_wd10_d100_s1.csv|3500.0,52.33159,0.0005330847
+SOCMartNet_HJBLQ_b1.0_delta0.2_delc0.3_1p_d100_te1.0_t1e6_wd10_d100_s2.csv|3500.0,51.990067,0.003965279
+SOCMartNet_HJBLQ_b1.0_delta0.2_delc0.3_1p_d100_te1.0_t1e6_wd10_d100_s3.csv|3500.0,51.959213,3.2373253e-05
+SOCMartNet_HJBLQ_b1.0_delta0.2_delc0.3_1p_d100_te1.0_t1e6_wd10_d100_s4.csv|3500.0,51.871944,0.0026049882

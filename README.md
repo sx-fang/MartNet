@@ -1,71 +1,78 @@
 # SOC-MartNet for Parabolic Equations and HJB Equations
 
-This repository provides the source code for the numerical experiments presented in the paper: **SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit $\inf_{u \in U} H$ in Stochastic Optimal Controls**.
+**Update (v1.1, 2026-09-08):** This release supersedes the initial codebase and provides a complete numerical reproduction package covering the SOC-MartNet results in Sections 4.1–4.8 of the paper.
 
-The paper is coauthored by Wei Cai, Shuixin Fang, and Tao Zhou, and has been accepted by SIAM Journal on Scientific Computing.
+**Why this release:** After the paper's results were produced, and before its release as the initial codebase, the code evolved through several versions to improve its efficiency and applicability to a wider range of problems. As a result, the initial codebase is not fully consistent with the paper's description and instead more closely aligns with our companion paper's code (https://github.com/sx-fang/DRDM). This release resolves that discrepancy. The implementation was refactored from the original v3-era codebase, available in the preprint's TeX source at https://arxiv.org/src/2405.03169v3, to more faithfully reflect the paper's description.
 
-The preprint of the paper is available on arXiv: [https://arxiv.org/abs/2405.03169](https://arxiv.org/abs/2405.03169).
+The package has been validated to reproduce the original results on SLURM clusters with 8 $\times$ A100 GPUs and on RTX 4090 GPUs for smaller-scale experiments. The reproduction report is available in `REPORT.html` (open it in a browser).
 
-## Dependencies
+## Summary
 
-The following dependencies are required to run the code:
+This repository contains the source code for the numerical experiments presented in:
+**SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without
+Explicit $\inf_{u \in U} H$ in Stochastic Optimal Controls**.
 
-- `matplotlib==3.10.1`
-- `numpy==2.2.4`
-- `pandas==2.2.3`
-- `psutil==5.9.0`
-- `torch==2.6.0`
+```bibtex
+@article {Cai2025SOCMartNet,
+    AUTHOR = {Cai, Wei and Fang, Shuixin and Zhou, Tao},
+     TITLE = {S{OC}-{M}art{N}et: a martingale neural network for the
+              {H}amilton-{J}acobi-{B}ellman equation without explicit
+              {$\inf_{u \in U}H$} in stochastic optimal controls},
+   JOURNAL = {SIAM J. Sci. Comput.},
+  FJOURNAL = {SIAM Journal on Scientific Computing},
+    VOLUME = {47},
+      YEAR = {2025},
+    NUMBER = {4},
+     PAGES = {C795--C819},
+      ISSN = {1064-8275,1095-7197},
+       DOI = {10.1137/24M1681033},
+}
+```
+The paper's preprint is available on arXiv: [https://arxiv.org/abs/2405.03169](https://arxiv.org/abs/2405.03169).
 
-To enable efficient code execution on XPU or CUDA devices, ensure that you have installed a CUDA-enabled or XPU-enabled version of PyTorch, along with the necessary hardware drivers.
+## Contents
 
+| Path | Contents |
+|---|---|
+| `REPORT.html` | Summary report: all result tables, figures, parameter settings, reproduction guide |
+| `code/SOCMartNet-v3-refactored/` | Reproduction code: entry `run.py` + the `socmartnet` package + `tests/validation_anchors/` (bit-level validation data) |
+| `slurm/` | Frozen-copy submission channel: `submit_job.sh` + `run_one.slurm` (a site template; see the reproduction guide) |
+| `experiments/` | Exact producing command lines per experiment family (`experiments.csv`) + single-case reproduction scripts (headers state coverage / reference values / expected CSV line count) + the driver `reproduce_all.sh` + `smoke_test.sh` |
+| `results/` | Aggregate CSVs + the raw final-row extracts (`t2b_raw_final.txt`, `t1e*_raw_final.txt`) + `final_rows.csv` (per-run final-row evidence) |
+| `figures/` | Figure PNGs + per-figure summary-data CSVs |
+| `plots/` | Plotting/aggregation scripts: `plot_*.py` and `build_final_rows.py` / `build_s44_d1e4_agg.py` expect the archival `runs/<jobid>/outputs` layout; `build_t1e_final_table.py` / `build_t2b_agg.py` re-aggregate the raw extracts in `results/` (default: check against the shipped files without writing; `--write` regenerates) |
 
-## Description of Modules
+## Reproduction guide
 
-- **`runtask.py`**: Serves as the main entry point for running the algorithm.
-- **`martnetdf.py`**: Implements the core logic of the algorithm.
-- **`exmeta.py`**: Defines the metaclass for PDEs and provides related utility functions.
-- **`examples`**: Contains example implementations for various parabolic and HJB equations.
-- **`default_config.ini`**: Specifies the default configuration parameters for the algorithm.
-- **`savresult.py`**: Provides functions for plotting results and saving outputs as CSV files.
-- **`taskmaker.py`**: Generates task files, which are stored in the `./taskfiles` directory.
-  
-To run the algorithm, execute:
+The environment is pinned in `pyproject.toml`; install it with
 
 ```bash
-python runtask.py
+pip install .
 ```
 
-**Behavior of `runtask.py`:**  It starts the training process using parameters from either `default_config.ini` or any `.ini` task files located in the `./taskfiles` directory. All results and outputs are saved in the `./outputs` folder.  
-If no `.ini` task files are found in `./taskfiles`, `runtask.py` will automatically use `default_config.ini`. If `.ini` task files are present, `runtask.py` will execute the tasks defined in those files instead.
+A quick end-to-end check that the code runs in your environment (one tiny linear-parabolic
+solve, about a minute on one GPU; prints `SMOKE OK` on success; `PYTHON=...` overrides the
+interpreter):
 
-## Citation
-
-```bibtex
-@misc{cai2025socmartnet,
-      title={SOC-MartNet: A Martingale Neural Network for the Hamilton-Jacobi-Bellman Equation without Explicit inf H in Stochastic Optimal Controls}, 
-      author={Wei Cai and Shuixin Fang and Tao Zhou},
-      year={2025},
-      eprint={2405.03169},
-      archivePrefix={arXiv},
-      primaryClass={math.NA},
-      url={https://arxiv.org/abs/2405.03169}, 
-}
+```bash
+bash experiments/smoke_test.sh
 ```
 
-## Related Work
+The full reproduction runs on a SLURM cluster with A100-class GPUs:
 
-This repository also includes the implementation of the martingale deep learning method proposed in the following preprint. This approach extends SOC-MartNet by introducing a derivative-free method, enabling the efficient solution of HJB equations and quasi-linear parabolic PDEs in dimensions as high as 10,000.
-
-```bibtex
-@misc{cai2024Martingale,
-      title={Martingale deep learning for very high dimensional quasi-linear partial differential equations and stochastic optimal controls}, 
-      author={Wei Cai and Shuixin Fang and Wenzhong Zhang and Tao Zhou},
-      year={2024},
-      eprint={2408.14395},
-      archivePrefix={arXiv},
-      primaryClass={math.OC},
-      url={https://arxiv.org/abs/2408.14395}, 
-}
+```bash
+# 1) This repository doubles as the workdir: clone (or copy the tree) onto your cluster
+#    and work at its root -- submit_job.sh and the scripts expect exactly this layout.
+#    Adapt the site template: edit slurm/run_one.slurm's #SBATCH account/partition header
+#    and PY variable (or export SBATCH_ACCOUNT / SBATCH_PARTITION / PYTHON)
+# 2) Submit: run the single-case scripts on demand (e.g. bash experiments/sec41_linear_parabolic.sh;
+#    the full list is in the header of experiments/reproduce_all.sh), or bash experiments/reproduce_all.sh for everything
+# 3) Success check: CSV line count (1000 iterations → 1002 lines, etc.); sacct COMPLETED alone is not sufficient
+# 4) Compare: aggregate CSVs under results/ and final_rows.csv
 ```
 
+## AI assistance
 
+During the preparation of the reproduction code and report, the AI assistants GLM 5.3 and
+Kimi K3 (256K) participated in refactoring the v3-era codebase, running the reproduction
+experiments, and writing the reproduction report.

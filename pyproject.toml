@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "socmartnet"
+version = "1.1"
+description = "SOC-MartNet: martingale neural networks for HJB equations in stochastic optimal control (reference implementation and reproduction package)"
+readme = "README.md"
+license = {text = "MIT"}
+# Pins follow the producing DGX A100 cluster environment (Python 3.12.11,
+# torch 2.11.0+cu128, numpy 2.4.2, matplotlib 3.10.6, pandas 2.3.3); the
+# RTX 4090 cluster runs (Secs. 4.1-4.3, Sec. 4.5 seed 0) used torch
+# 2.6.0+cu124 / numpy 1.26.4 -- see the README environment section.
+requires-python = ">=3.12.11,<3.13"
+dependencies = [
+    "torch==2.11.0",
+    "numpy==2.4.2",
+]
+
+[project.optional-dependencies]
+plots = ["matplotlib==3.10.6", "pandas==2.3.3"]
+
+[tool.setuptools]
+package-dir = {"" = "code/SOCMartNet-v3-refactored"}
+packages = ["socmartnet"]

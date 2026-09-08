@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOC-MartNet Full Numerical Reproduction Report</title>
+<style>
+:root{--ink:#1a1a2e;--accent:#0f3460;--ok:#1b7a3d;--warn:#a05a00;--band:#f4f6fa;--line:#d8dee9}
+body{font-family:Georgia,"Source Han Serif SC","Noto Serif CJK SC",serif;color:var(--ink);margin:0;background:#fff;line-height:1.75;font-size:16px}
+.wrap{max-width:1080px;margin:0 auto;padding:48px 40px 80px}
+h1{font-size:27px;color:var(--accent);border-bottom:3px solid var(--accent);padding-bottom:12px;margin:0 0 6px}
+h2{font-size:21px;color:var(--accent);margin:44px 0 14px;border-left:5px solid var(--accent);padding-left:10px}
+h3{font-size:17px;margin:26px 0 8px;color:#16213e}
+table{border-collapse:collapse;width:100%;margin:14px 0 8px;font-size:13.5px;font-family:Consolas,Menlo,monospace}
+th{background:var(--accent);color:#fff;padding:7px 9px;text-align:left;font-weight:600}
+td{border:1px solid var(--line);padding:6px 9px}
+tr:nth-child(even) td{background:var(--band)}
+.good{color:var(--ok);font-weight:700}.bad{color:#b3261e}.warn{color:var(--warn)}
+.box{background:var(--band);border:1px solid var(--line);border-radius:6px;padding:14px 18px;margin:16px 0}
+.finding{background:#fdf6ec;border:1px solid #e5c07b;border-radius:6px;padding:14px 18px;margin:16px 0}
+img.fig{width:100%;border:1px solid var(--line);border-radius:4px;margin:8px 0 2px}
+.figcap{font-size:12.5px;color:#5c677d;text-align:center;margin:2px 0 18px}
+code,.cmd{font-family:Consolas,Menlo,monospace;font-size:12.5px;background:#eef1f6;border-radius:3px;padding:1px 5px}
+pre{background:#1e2530;color:#d8dee9;border-radius:6px;padding:12px 16px;overflow-x:auto;font-size:12px;line-height:1.6}
+code.inpre{background:none;padding:0;color:#98c379}
+.small{font-size:12.5px;color:#5c677d}
+a{color:var(--accent)}
+.toc{columns:2;font-size:14px}
+.foot{margin-top:60px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:#5c677d}
+.badge{display:inline-block;background:var(--ok);color:#fff;border-radius:10px;padding:0 9px;font-size:11.5px;margin-left:6px;vertical-align:2px}
+.badge.gray{background:#6b7280}
+</style>
+<link rel="stylesheet" href="katex/katex.min.css">
+<script defer src="katex/katex.min.js"></script>
+<script defer src="katex/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)'},{left:'$$',right:'$$',display:true}],throwOnError:false})"></script>
+</head>
+<body><div class="wrap">
+
+<h1>SOC-MartNet §4.1–4.8 Full Numerical Reproduction Report</h1>
+<h2>Contents</h2>
+<div class="toc">
+1. <a href="#caliber">Notation and accuracy metrics</a><br>
+2. <a href="#s41">§4.1 Linear parabolic equation</a><br>
+3. <a href="#s42">§4.2 Semilinear equation</a><br>
+4. <a href="#s43">§4.3 Time-discretization convergence rate</a><br>
+5. <a href="#s44">§4.4 Non-degenerate HJB (paper Figs. 4 and 5)</a><br>
+6. <a href="#s45">§4.5 Space-time domain validity</a><br>
+7. <a href="#s46">§4.6 Shifted-terminal SOCP</a><br>
+8. <a href="#s47">§4.7 ε-perturbation suite</a><br>
+9. <a href="#t1">Paper Table 1 (§4.8 DeepBSDE comparison)</a><br>
+10. <a href="#t2">§4.8 Paper Table 2 (DDP runtimes)</a><br>
+11. <a href="#repro">Reproduction guide (using this package)</a>
+</div>
+
+<h2 id="caliber">1. Notation and accuracy metrics</h2>
+<p>The notation below follows the conventions of paper §4. Networks: \(u_{\alpha}\), \(v_{\theta}\), \(\rho_{\eta}\) denote the control / value / adversarial networks; \(W_{h}\) is the hidden width (default 6 hidden layers of \(d+10\) ReLU units; table shorthand w256 = \(W_{h}=256\), wd10 = \(W_{h}=d+10\)); \(r\) is the output dimension of \(\rho_{\eta}\) (default 600). Training: \(I\) is the number of iterations; \(N\) the number of time steps (default 100); \(T\) the terminal time (default 1); \(M\) the total number of sample paths (paper default \(10^{5}\); this reproduction uses \(10^{4}\), with \(6\times10^{3}\) for a few high-dimensional cells — see the parameter settings of each section); batch size \(|M_{i}|\) defaults to 256 (d≤1000) / 128 (d&gt;1000); optimizer RMSProp; learning rates
+$$\delta_{1}=\delta_{2}=\delta_{0}\times10^{-3}\times0.01^{\,i/I},\qquad \delta_{3}=10^{-2}\times0.01^{\,i/I},\qquad i=0,1,\cdots,I-1,$$
+where \(\delta_{0}=3d^{-0.5}\) (d≤1000) and \(3d^{-0.8}\) (d&gt;1000); \(\lambda\) is initialized at 10 with learning rate \(\delta_{4}=10\) and upper bound \(\bar{\lambda}\); \(J=2K=2\). Throughout this report \(\mathrm{lr}_{u}\) / \(\mathrm{lr}_{\rho}\) abbreviate the levels of \(\delta_{1}=\delta_{2}\) / \(\delta_{3}\).</p>
+<p>Error (paper definition):
+$$\mathrm{RE}:=\Big(\textstyle\sum_{x\in D_{0}}\bigl|\hat v(0,x)-v(0,x)\bigr|\Big)\Big/\Big(\textstyle\sum_{x\in D_{0}}\bigl|v(0,x)\bigr|\Big)$$
+that is, the relative \(L^{1}\) error (paper Table 1 uses the single-point convention \(D_{0}=\{x_{0}\}\); §4.3 of the paper denotes it \(\mathrm{RE}_{1}\)); the relative \(L^{\infty}\) error is defined as
+$$\max_{x\in D_{0}}\bigl|\hat v(0,x)-v(0,x)\bigr|\Big/\max_{x\in D_{0}}\bigl|v(0,x)\bigr|.$$This report uses final-iteration values; SD denotes standard deviation; in the history panels Mart. Loss = \(|G|^{2}\) and Hamilt. follows the paper definition. Reference solutions are the analytic or high-accuracy reference solutions of each problem (the top row of §4.2 uses a Cole–Hopf \(10^{6}\)-sample reference; §4.7 uses the \(\varepsilon=0\) reference solution).</p>
+
+<h2 id="s41">2. §4.1 Linear parabolic equation (paper Fig. 1)</h2>
+<table>
+<tr><th>d</th><th>100</th><th>1000</th><th>2000</th></tr>
+<tr><td>RE (5-seed)</td><td>6.16e-3 ± 1.24e-3</td><td>6.54e-3 ± 0.68e-3</td><td>4.54e-3 ± 0.57e-3</td></tr>
+</table>
+<p class="small">Hardware: single RTX 4090 GPU.</p>
+<p>This subsection of the paper reports illustrative results (no printed numeric anchor). All 12 panels (solution curves + Mart loss / RE histories) are rendered:</p>
+<img class="fig" src="figures/fig1_linear.png" alt="linear parabolic">
+<div class="figcap">Fig. 1 · §4.1 reproduction (summary data <code>figures/fig1_linear.csv</code>)</div>
+<p class="small"><b>Parameter settings</b>: linear equation, d∈{100, 1000, 2000}, N=100 time steps, I=2000 (4000 for d=2000), M=10⁴ (6000 for d=2000), path renewal 0.2, fp32, seeds 0–4; full command lines in
+<code>experiments/sec41_linear_parabolic.sh</code>.</p>
+
+<h2 id="s42">3. §4.2 Semilinear equation (paper Fig. 2)</h2>
+<table>
+<tr><th>T</th><th>1</th><th>0.1</th><th>0.05</th><th>0.01</th></tr>
+<tr><td>RE (5-seed)</td><td>1.46e-2 ± 0.27e-2</td><td>3.24e-3 ± 0.59e-3</td><td>5.64e-3 ± 0.69e-3</td><td>2.03e-2 ± 0.51e-3</td></tr>
+</table>
+<p class="small">Hardware: single RTX 4090 (d=100 numerical row); the d=10 reference curves (top row) were produced on an A100.</p>
+<p>Paper Fig. 2 (2×4 panels): top row, d=10 exact-solution reference; bottom row, d=100 numerical solution (mean ± 2SD).</p>
+<img class="fig" src="figures/fig2_semilinear.png" alt="semilinear oscillatory">
+<div class="figcap">Fig. 2 · §4.2 reproduction (<code>figures/fig2_semilinear.csv</code>)</div>
+<p class="small"><b>Parameter settings</b>: semilinear equation, d=100, T∈{1, 0.1, 0.05, 0.01}, N=100, I=2000,
+M=10⁴, path renewal 0.2, fp32, seeds 0–4 (top-row reference uses the d=10 analytic convention); full command lines in
+<code>experiments/sec42_semilinear.sh</code>.</p>
+
+<h2 id="s43">4. §4.3 Time-discretization convergence rate (paper Fig. 3)</h2>
+<table>
+<tr><th>N</th><th>3</th><th>4</th><th>5</th><th>6</th><th>8</th><th>12</th><th>18</th></tr>
+<tr><td>Paper anchor</td><td>6.44e-2</td><td>4.48e-2</td><td>3.33e-2</td><td>2.66e-2</td><td>2.00e-2</td><td>1.46e-2</td><td>1.03e-2</td></tr>
+<tr><td>This reproduction (5-seed)</td><td>7.29e-2</td><td>5.15e-2</td><td>4.51e-2</td><td>3.12e-2</td><td>2.26e-2</td><td>1.65e-2</td><td>1.04e-2</td></tr>
+<tr><td>Ratio</td><td>1.13</td><td>1.15</td><td>1.36</td><td>1.17</td><td>1.13</td><td>1.13</td><td>1.005</td></tr>
+</table>
+<p class="small">Hardware: single RTX 4090 GPU.</p>
+<p>The error metric is the paper's notation \(\mathrm{RE}_{1}\) (relative \(L^{1}\) error). The log–log slope of this reproduction is <b>−1.087</b>; the paper's reference slope is \(O(N^{-1.01})\). Paper anchor values in the table are displayed to two significant digits; the ratio column is computed from the unrounded anchors.</p>
+<img class="fig" src="figures/fig3_time_convergence.png" alt="time convergence">
+<div class="figcap">Fig. 3 · §4.3 reproduction (<code>figures/fig3_time_convergence.csv</code>; paper anchor values in the table above)</div>
+<p class="small"><b>Parameter settings</b>: LinearSinAC equation, d=100, N∈{3,4,5,6,8,12,18}, I=3000 (N≤5) /
+6000 (N≥6, the paper's two-tier convention), M=10⁴, path renewal 0.2, fp32, seeds 0–4; full command lines in
+<code>experiments/sec43_time_convergence.sh</code>.</p>
+
+<h2 id="s44">5. §4.4 Non-degenerate HJB (paper Figs. 4 and 5)</h2>
+<h3>5.1 Paper Fig. 4 (HJB-1)<span class="badge">12/12</span></h3>
+<table>
+<tr><th>d \ T</th><th>1</th><th>0.5</th><th>0.1</th><th>0.01</th></tr>
+<tr><td>100</td><td>6.15e-3</td><td>6.44e-3</td><td>1.18e-2</td><td>3.16e-2</td></tr>
+<tr><td>1000</td><td>5.48e-3</td><td>6.98e-3</td><td>1.94e-2</td><td>1.14e-1</td></tr>
+<tr><td>2000</td><td>2.90e-3</td><td>2.61e-3</td><td>1.96e-2</td><td>9.24e-2</td></tr>
+</table>
+<p class="small">Hardware: single A100 GPU.</p>
+<p class="small"><b>Parameter settings</b>: HJB-1 with oscillatory terminal (\(\varepsilon_{0}=0.1\pi\)),
+d∈{100,1000,2000}×T∈{1,0.5,0.1,0.01}, I=1000, M=10⁴, path renewal 0.2, fp32, single run (as in the paper's repeat convention); \(\bar{\lambda}\)=1000 (100 for d≥1000 with T=0.01, per the paper text); full command lines in
+<code>experiments/sec44_fig4_hjb1.sh</code>.</p>
+<img class="fig" src="figures/fig4_hjb1_tscan.png" alt="hjb1 terminal scan">
+<div class="figcap">Fig. 4 · reproduction of paper Fig. 4 (<code>figures/fig4_hjb1_tscan.csv</code>)</div>
+
+<h3>5.2 Paper Fig. 5 (HJB-2/-3)<span class="badge">d2000 single run + d1e4 5-seed</span></h3>
+<table>
+<tr><th>Cell</th><th>RE (this reproduction)</th></tr>
+<tr><td>HJB-2 d=2000</td><td>0.0184</td></tr>
+<tr><td>HJB-3 d=2000</td><td>0.0215</td></tr>
+<tr><td>HJB-2 d=10⁴</td><td><b>0.01387 ± 0.00086</b></td></tr>
+<tr><td>HJB-3 d=10⁴</td><td><b>0.02838 ± 0.00359</b></td></tr>
+</table>
+<p class="small">Hardware: A100 (the d=10⁴ batch used 8-GPU DDP).</p>
+<p class="small">This subsection of the paper reports illustrative results (no printed numeric anchor); the table above lists the final values of this reproduction.
+<b>Protocol notes</b>: the shaded band in paper Fig. 5 reflects five independent runs; here the two d=2000 rows are single runs and the two d=10⁴ rows use 5 seeds. The learning rates, iteration count, and batch size are not printed in the paper; the values used here are given in the parameter settings below.</p>
+<p class="small"><b>Parameter settings</b>: d=2000 — I=8000, \(\bar{\lambda}\)=1000, \(\mathrm{lr}_{u}\)=2.744e-5 and
+\(\mathrm{lr}_{\rho}\)=2.744e-4 (4× the base), M=10⁴, single run; d=10⁴ — I=6000, \(W_{h}\)=10010, batch 64, \(\mathrm{lr}_{u}\)=7.571e-6 and \(\mathrm{lr}_{\rho}\)=7.571e-5 (4× the base), M=10⁴,
+seeds 0–4. Full command lines in <code>experiments/sec44_fig5_hjb23.sh</code>.</p>
+<img class="fig" src="figures/fig5_hjb_highdim.png" alt="HJB high-dim">
+<div class="figcap">Fig. 5 · reproduction of paper Fig. 5 (3×4 twelve-panel layout matching the paper; Mart/RE on log axes with one-sided mean+2SD bands, Hamilt. on a linear axis, per the paper caption; <code>figures/fig5_hjb_highdim.csv</code>)</div>
+
+<h2 id="s45">6. §4.5 Space-time domain validity (paper Fig. 6)</h2>
+<table>
+<tr><th>Metric</th><th>This reproduction (5-seed)</th><th>Paper reference</th></tr>
+<tr><td>RE at end of training</td><td>0.02062 ± 0.00172</td><td>illustrative result, no printed numeric anchor</td></tr>
+<tr><td>Shift-line |Δv| (r = 0.125 / 0.25)</td><td>0.0172 / 0.0308</td><td>—</td></tr>
+<tr><td>Path RE, final value</td><td>0.0292</td><td>—</td></tr>
+</table>
+<p class="small">Hardware: A100 (seeds 1–4) and RTX 4090 (seed 0).</p>
+<p class="small">The shift-line |Δv| is the mean of |Δv| over a 100-point grid on s∈[0,1] (not the maximum); all values in the table are 5-seed means.</p>
+<p class="small"><b>Parameter settings</b>: HJB-2 (\(\varepsilon_{1}=0.2\)), d=1000, I=8000, M=10⁴, path renewal 0.2, \(\bar{\lambda}\)=10,
+\(\mathrm{lr}_{u}\)=4.777e-5 and \(\mathrm{lr}_{\rho}\)=4.777e-4, fp32, seeds 0–4; the evaluation covers both the shift-line pointwise and the path metrics (<code>--eval-ptx</code> /
+<code>--eval-path-re</code>). Full command lines in <code>experiments/sec45_domain_validity.sh</code>.</p>
+<img class="fig" src="figures/fig6_domain_validity.png" alt="domain validity">
+<div class="figcap">Fig. 6 · §4.5 reproduction (3 panels: shift lines ×2 + RE~t; <code>figures/fig6_domain_validity.csv</code>)</div>
+
+<h2 id="s46">7. §4.6 Shifted-terminal SOCP (paper Fig. 7)</h2>
+<p class="small"><b>Parameter settings</b>: ShiftTarget equation (log-form terminal). Both rows use I=3000,
+M=10⁴, \(\bar{\lambda}\)=1000, fp32, seeds 0–4; SD is the sample standard deviation (ddof=1; the summary CSVs under figures/ store the population standard deviation — the two differ by a factor \(\sqrt{5/4}\)). Full command lines in the §4.6 rows of
+<code>experiments.csv</code> and in <code>experiments/sec46_shifted_target.sh</code>.</p>
+<table>
+<tr><th>d</th><th>RE (5-seed)</th><th>Gap of \(J(u)\) to the theoretical lower bound \(J(u^{*})\)</th></tr>
+<tr><td>100</td><td><b>1.45e-3 ± 0.44e-3</b></td><td>0.11%</td></tr>
+<tr><td>500</td><td>3.23e-3 ± 0.51e-3</td><td>0.29%</td></tr>
+</table>
+<p class="small">Hardware: single A100 GPU.</p>
+<p class="small"><b>Protocol notes</b>: the hyperparameters used for the two rows differ from the paper text — the paper text prescribes I=1000 (a control batch under that setting is retained in <code>experiments/sec46_shifted_target.sh</code>), whereas both rows here use I=3000; the d=100 row additionally uses strengthened adversarial learning rates (\(\mathrm{lr}_{u}\)×4 = 1.2e-3 and
+\(\mathrm{lr}_{\rho}\) = 40×\(\mathrm{lr}_{u}\) = 4.8e-2, path renewal fraction 0.1), while the d=500 row uses the standard convention
+(\(\mathrm{lr}_{\rho}\) = 10×\(\mathrm{lr}_{u}\), renewal fraction 0.2).</p>
+<p>Paper Fig. 7 consists of: diag curves + RE history (log axis, one-sided mean+2SD band) + \(J(u)\) history (linear axis, mean±2SD); the reproduction is shown in Fig. 7.</p>
+<img class="fig" src="figures/fig7_shifted_target.png" alt="shifted target">
+<div class="figcap">Fig. 7 · §4.6 reproduction (<code>figures/fig7_shifted_target_summary.csv</code>)</div>
+
+<h2 id="s47">8. §4.7 ε-perturbation suite (paper Fig. 8)</h2>
+<table>
+<tr><th>ε</th><th>1</th><th>1/2</th><th>1/4</th><th>1/8</th></tr>
+<tr><td>RE vs ε=0 reference (5-seed)</td><td>1.743 ± 0.006</td><td>0.823 ± 0.005</td><td>0.370 ± 0.005</td><td>0.203 ± 0.010</td></tr>
+</table>
+<p class="small">Hardware: single A100 GPU.</p>
+<p>Paper Fig. 8 shows solution-curve families for decreasing ε (with HJB-2 = ε=0 as reference); in this reproduction the \(\varepsilon=\tfrac{1}{8}\) family has mean −0.569 (reference −0.5).</p>
+<p class="small"><b>Parameter settings</b>: HJB-2 ε-perturbation family, d=1000, ε∈{1, 1/2, 1/4, 1/8}, I=4000, M=10⁴,
+path renewal 0.2, \(\bar{\lambda}\)=1000, fp32, seeds 0–4. Full command lines in <code>experiments/sec47_epsilon.sh</code>.</p>
+<img class="fig" src="figures/fig8_epsilon.png" alt="epsilon perturbation">
+<div class="figcap">Fig. 8 · §4.7 reproduction (<code>figures/fig8_epsilon.csv</code>)</div>
+
+<h2 id="t1">9. Paper Table 1 (§4.8): equal-time reproduction</h2>
+<p><b>Final reproduction protocol = equal-time comparison</b>: MartNet is run within the runtime budget of the DeepBSDE entries reported in paper Table 1 (RT column), after which the two errors are compared. Network and hyperparameters follow the paper text; the iteration count I of each cell is the time budget divided by the per-iteration cost measured with this package.</p>
+<table>
+<tr><th>Cell</th><th>I</th><th>RE, this reproduction (5-seed)</th><th>DeepBSDE printed</th><th>Ratio</th><th>RT (s), this reproduction</th><th>DeepBSDE RT (s), printed</th></tr>
+<tr><td>d100 w256</td><td>3200</td><td>1.67e-3 ± 4.71e-4</td><td>3.23e-3</td><td>0.52×</td><td>72.3</td><td>73</td></tr>
+<tr><td>d300 w256</td><td>3300</td><td>6.50e-4 ± 7.80e-4</td><td>1.18e-3</td><td>0.55×</td><td>89.2</td><td>90</td></tr>
+<tr><td>d500 w256</td><td>4600</td><td>1.07e-3 ± 6.24e-4</td><td>1.05e-3</td><td>1.02×</td><td>129.3</td><td>116</td></tr>
+<tr><td>d800 w256</td><td>4800</td><td>2.36e-3 ± 3.65e-3</td><td>2.54e-3</td><td>0.93×</td><td>155.4</td><td>145</td></tr>
+<tr><td>d1000 w256</td><td>4900</td><td>9.23e-4 ± 5.62e-4</td><td>1.86e-3</td><td>0.50×</td><td>169.9</td><td>170</td></tr>
+<tr><td>d100 wd10</td><td>3500</td><td>1.79e-3 ± 1.59e-3</td><td>2.86e-3</td><td>0.63×</td><td>52.1</td><td>53</td></tr>
+<tr><td>d300 wd10</td><td>3500</td><td>5.12e-4 ± 4.02e-4</td><td>3.27e-4</td><td>1.57×</td><td>87.2</td><td>103</td></tr>
+<tr><td>d500 wd10</td><td>3500</td><td>1.98e-3 ± 1.36e-3</td><td>6.41e-4</td><td>3.09×</td><td>167.6</td><td>184</td></tr>
+<tr><td>d800 wd10</td><td>3000</td><td>2.43e-3 ± 1.61e-3</td><td>1.28e-3</td><td>1.90×</td><td>328.9</td><td>386</td></tr>
+<tr><td>d1000 wd10</td><td>4100</td><td>1.47e-3 ± 1.07e-3</td><td>3.77e-3</td><td>0.39×</td><td>603.6</td><td>615</td></tr>
+</table>
+<p class="small">Hardware: single A100 GPU (both the reproduction and the paper's reported runs).</p>
+<p class="small">Ratio = 5-seed mean of this reproduction / DeepBSDE printed value. RT = cumulative training wall-clock time (rt column of the training CSV), 5-seed mean; the printed DeepBSDE RT is the time budget of this protocol (the paper's reported single-A100 runtime). Realized runtimes are 85%–111% of the corresponding budgets. Per-seed values are in <code>results/t1e_final_table.csv</code>. The largest error ratio in the table is 3.09×, the geometric mean is 0.89×, and 6/10 cells are below 1×.</p>
+<p class="small"><b>Protocol notes</b>: deviations from the printed parameters — (i) iteration count I: the paper Table 1 caption states I=1000, whereas this reproduction uses 3200–4900 per the equal-time budget (derivation in the intro of this section); (ii) \(\mathrm{lr}_{\rho}\): the paper text prescribes a flat 1e-2; the five low-dimensional cells here keep 1e-2, and the five high-dimensional cells use the relative convention 10×\(\mathrm{lr}_{u}\)
+(\(\mathrm{lr}_{u}\) for the w256 d1000 cell); (iii) batch size: the paper §4 opening tiers it by dimension as 256/128, whereas this reproduction uses 128 uniformly. Per-cell values in <code>results/t1e_final_table.csv</code>.</p>
+<p class="small"><b>Parameter settings</b>: HJB-2 (\(\varepsilon_{1}=0.2\)), point evaluation x₀=0, networks with h=4 (paper §4.8 text:
+“four hidden layers, W_h units”), \(W_{h}\in\{256,\ d+10\}\), rho network r=600 (paper default),
+batch=128 (uniform across the table), \(\mathrm{lr}_{u}=3\times10^{-3}\,d^{-0.5}\) (paper §4 opening learning rate), \(\bar{\lambda}\)=1000,
+M=10⁴, path renewal 0.2, fp32,
+seeds 0–4, single GPU; per-cell \(\mathrm{lr}_{\rho}\) and I in <code>results/t1e_final_table.csv</code>.
+Full command lines in <code>experiments/table1_equaltime.sh</code> (50 jobs).</p>
+<h2 id="t2">10. §4.8 Paper Table 2 (DDP runtimes)<span class="badge">20/20</span></h2>
+<p>The reproduction protocol uses a <b>uniform batch size of 128</b> (identical across all 20 cells, making the table comparable across dimensions and GPU counts).</p>
+<p class="small"><b>Parameter settings</b>: HJB-3 (\(\varepsilon_{1}=0.1\)), \(W_{h}=d+10\), I=6000, M=10⁴, path renewal 0.2,
+\(\bar{\lambda}\)=1000, fp32, single run (as in the paper's repeat convention), GPU counts {1,2,4,8} (DDP), batch = 128.
+Full command lines in the Table-2 rows (uniform 128) of <code>experiments/experiments.csv</code> and in
+<code>experiments/table2_runtime.sh</code>.</p>
+<table>
+<tr><th>GPUs \ d</th><th>100</th><th>500</th><th>800</th><th>1,000</th><th>2,000</th></tr>
+<tr><td>1 × A100</td><td>111.4 (1.0×)</td><td>409.7 (1.0×)</td><td>961.0 (1.0×)</td><td>1299.5 (1.0×)</td><td>4811.7 (1.0×)</td></tr>
+<tr><td>2 × A100</td><td>136.1 (0.8×)</td><td>230.4 (1.8×)</td><td>517.5 (1.9×)</td><td>701.3 (1.9×)</td><td>2500.8 (1.9×)</td></tr>
+<tr><td>4 × A100</td><td>150.4 (0.7×)</td><td>151.2 (2.7×)</td><td>295.5 (3.3×)</td><td>387.6 (3.4×)</td><td>1354.1 (3.6×)</td></tr>
+<tr><td>8 × A100</td><td>152.1 (0.7×)</td><td>155.6 (2.6×)</td><td>194.1 (5.0×)</td><td>235.3 (5.5×)</td><td>773.8 (6.2×)</td></tr>
+</table>
+<p class="small">Hardware: A100 (DDP with the GPU count listed per row; the printed values are the paper's reported A100 runs).</p>
+<p class="small">The table layout matches paper Table 2 (rows = GPU count, columns = dimension). Format: RT in seconds (parenthesized value = DDP speedup = rt(g1)/rt(gk)); RT = cumulative training wall-clock time (rt column of the training CSV); the printed values and this reproduction both ran on A100 GPUs. Full data including the RE column in <code>results/t2b_fix_agg.csv</code> (per-run final-row extract: <code>results/t2b_raw_final.txt</code>). Cell-by-cell ratios against the paper's printed values: <b>0.53–1.06</b>
+(0.96–1.00 for the d2000 column). DDP speedup pattern:
+2.6×–6.2× on 8 GPUs for d500–d2000, flat for d100.</p>
+
+<h2 id="repro">11. Reproduction guide (using this package)</h2>
+<p>This directory is <b>self-contained</b>: source code + command lines of all experiments + reference values + figures and plotting scripts. Directory layout:</p>
+<pre><code class="inpre">repository root (= the workdir)/
+├── REPORT.html                # this report
+├── code/SOCMartNet-v3-refactored/
+│                              # reproduction code: entry run.py + the socmartnet package + tests/validation_anchors/
+├── slurm/                     # frozen-copy submission channel (submit_job.sh + run_one.slurm)
+├── experiments/
+│   ├── experiments.csv        # per experiment family: section / hardware / seeds / representative jobid / command-line template
+│   ├── table1_equaltime.sh … table2_runtime.sh
+│   │                          # 10 single-case reproduction scripts (run on demand; each header states the paper content covered, the reference values, and the expected CSV line count)
+│   ├── smoke_test.sh          # quick end-to-end check (prints SMOKE OK)
+│   ├── common.sh              # shared harness (WORKDIR / submit(); each single-case script sources it)
+│   └── reproduce_all.sh       # full driver (invokes the 10 single-case scripts in order; parameters taken verbatim from the job-log headers that produced the results)
+├── results/                   # reference values: Table1/Table2/§4.1-4.3/§4.4 aggregate CSVs + final-row extracts of this reproduction
+│   └── final_rows.csv         # final-row extract of the runs behind the shipped results (jobid / stem / line count / final values)
+├── katex/                     # local KaTeX rendering library (formula rendering, works offline)
+├── figures/                   # figure PNGs + per-figure summary-data CSVs (pointwise curve data live in the archived job CSVs)
+└── plots/                     # plotting and aggregation scripts (plot_*.py / build_*.py)</code></pre>
+<p><b>Reproduction steps</b> (any A100-class SLURM cluster; the numbers in this package were produced on A100 and RTX 4090 GPUs):</p>
+<pre><code class="inpre"># 1) This repository doubles as the workdir: clone it on your cluster and work at its
+#    root -- submit_job.sh expects exactly this layout (code/SOCMartNet-v3-refactored/
+#    + slurm/ + experiments/). Adapt the site template slurm/run_one.slurm:
+#    #SBATCH account/partition + PY variable
+# 2) Submit: run the single-case scripts on demand (experiments/table1_equaltime.sh … table2_runtime.sh),
+#    or bash experiments/reproduce_all.sh for the full suite; below, the §4.4 paper-Fig. 5 d1e4 formal batch as an example
+export SBATCH_PARTITION=batch SBATCH_GPUS=8 SBATCH_TIMELIMIT=1-00:00:00
+bash slurm/submit_job.sh fig5_hjb2_d1e4_s1 \
+  --example hjblq --dim 10000 --delta0 0.2 --preset sisc --dtype float32 \
+  --max-iter 6000 --num-paths 10000 --renew-frac 0.2 --fd-residual \
+  --lam-bar 1000 --controlled-pool --width 10010 \
+  --batch-size 64 --lr-uv 7.5714866e-06 --lr-rho 7.5714866e-05 \
+  --seed 1 --tag fig5_hjb2_d1e4_s1
+# 3) Success check: sacct COMPLETED alone is not sufficient; the CSV line count is authoritative (6000 iterations → 6002 lines)
+# 4) Compare against reference values: aggregate CSVs and final_rows.csv under results/</code></pre>
+<p class="small">Environment: Python 3.12 everywhere; PyTorch 2.11.0+cu128 (A100 cluster) / 2.6.0+cu124 (RTX 4090 cluster); RMSprop; fp32; multi-GPU DDP. Accuracy sections use ≥5 seeds (0–4) per cell; the single-run exceptions are paper Table 2, all 12 cells of paper Fig. 4, and the two d=2000 rows of paper Fig. 5.</p>
+
+</div></body>
+</html>
