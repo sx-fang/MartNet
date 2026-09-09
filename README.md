@@ -50,6 +50,15 @@ The environment is pinned in `pyproject.toml`; install it with
 pip install .
 ```
 
+On hosts whose GPU driver predates CUDA 13 (e.g. the CUDA 12.8 driver of the A100
+cluster the results were produced on), the PyPI default `torch` wheel fails at CUDA
+init ("NVIDIA driver ... too old"); install the cu128 build the results were produced
+with first -- `pip install .` then keeps it instead of replacing it:
+
+```bash
+pip install torch==2.11.0+cu128 --index-url https://download.pytorch.org/whl/cu128
+```
+
 A quick end-to-end check that the code runs in your environment (one tiny linear-parabolic
 solve, about a minute on one GPU; prints `SMOKE OK` on success; `PYTHON=...` overrides the
 interpreter):
