@@ -116,22 +116,22 @@ d∈{100,1000,2000}×T∈{1,0.5,0.1,0.01}, I=1000, M=10⁴, path renewal 0.2, fp
 <img class="fig" src="figures/fig4_hjb1_tscan.png" alt="hjb1 terminal scan">
 <div class="figcap">Fig. 4 · reproduction of paper Fig. 4 (<code>figures/fig4_hjb1_tscan.csv</code>)</div>
 
-<h3>5.2 Paper Fig. 5 (HJB-2/-3)<span class="badge">d2000 single run + d1e4 5-seed</span></h3>
+<h3>5.2 Paper Fig. 5 (HJB-2/-3)<span class="badge">5-seed (d=2000 and d=10⁴)</span></h3>
 <table>
 <tr><th>Cell</th><th>RE (this reproduction)</th></tr>
-<tr><td>HJB-2 d=2000</td><td>0.0184</td></tr>
-<tr><td>HJB-3 d=2000</td><td>0.0215</td></tr>
+<tr><td>HJB-2 d=2000</td><td><b>0.01757 ± 0.00150</b></td></tr>
+<tr><td>HJB-3 d=2000</td><td><b>0.02227 ± 0.00132</b></td></tr>
 <tr><td>HJB-2 d=10⁴</td><td><b>0.01387 ± 0.00086</b></td></tr>
 <tr><td>HJB-3 d=10⁴</td><td><b>0.02838 ± 0.00359</b></td></tr>
 </table>
-<p class="small">Hardware: A100 (the d=10⁴ batch used 8-GPU DDP).</p>
+<p class="small">Hardware: A100, 8-GPU DDP (all rows).</p>
 <p class="small">This subsection of the paper reports illustrative results (no printed numeric anchor); the table above lists the final values of this reproduction.
-<b>Protocol notes</b>: the shaded band in paper Fig. 5 reflects five independent runs; here the two d=2000 rows are single runs and the two d=10⁴ rows use 5 seeds. The learning rates, iteration count, and batch size are not printed in the paper; the values used here are given in the parameter settings below.</p>
+<b>Protocol notes</b>: as in paper Fig. 5, every row uses 5 independent runs; the shaded bands are mean±2SD (one-sided on the log axes, per the paper caption). The learning rates, iteration count, and batch size are not printed in the paper; the values used here are given in the parameter settings below.</p>
 <p class="small"><b>Parameter settings</b>: d=2000 — I=8000, \(\bar{\lambda}\)=1000, \(\mathrm{lr}_{u}\)=2.744e-5 and
-\(\mathrm{lr}_{\rho}\)=2.744e-4 (4× the base), M=10⁴, single run; d=10⁴ — I=6000, \(W_{h}\)=10010, batch 64, \(\mathrm{lr}_{u}\)=7.571e-6 and \(\mathrm{lr}_{\rho}\)=7.571e-5 (4× the base), M=10⁴,
+\(\mathrm{lr}_{\rho}\)=2.744e-4 (4× the base), M=10⁴, seeds 0–4; d=10⁴ — I=6000, \(W_{h}\)=10010, batch 64, \(\mathrm{lr}_{u}\)=7.571e-6 and \(\mathrm{lr}_{\rho}\)=7.571e-5 (4× the base), M=10⁴,
 seeds 0–4. Full command lines in <code>experiments/sec44_fig5_hjb23.sh</code>.</p>
 <img class="fig" src="figures/fig5_hjb_highdim.png" alt="HJB high-dim">
-<div class="figcap">Fig. 5 · reproduction of paper Fig. 5 (3×4 twelve-panel layout matching the paper; Mart/RE on log axes with one-sided mean+2SD bands, Hamilt. on a linear axis, per the paper caption; <code>figures/fig5_hjb_highdim.csv</code>)</div>
+<div class="figcap">Fig. 5 · reproduction of paper Fig. 5 (3×4 twelve-panel layout matching the paper; d=2000 curves show the 5-run mean with mean±2SD bands; Mart/RE on log axes use one-sided mean+2SD bands, per the paper caption; <code>figures/fig5_hjb_highdim.csv</code>)</div>
 
 <h2 id="s45">6. §4.5 Space-time domain validity (paper Fig. 6)</h2>
 <table>
@@ -255,7 +255,7 @@ bash slurm/submit_job.sh fig5_hjb2_d1e4_s1 \
   --seed 1 --tag fig5_hjb2_d1e4_s1
 # 3) Success check: sacct COMPLETED alone is not sufficient; the CSV line count is authoritative (6000 iterations → 6002 lines)
 # 4) Compare against reference values: aggregate CSVs and final_rows.csv under results/</code></pre>
-<p class="small">Environment: Python 3.12 everywhere; PyTorch 2.11.0+cu128 (A100 cluster) / 2.6.0+cu124 (RTX 4090 cluster); RMSprop; fp32; multi-GPU DDP. Accuracy sections use ≥5 seeds (0–4) per cell; the single-run exceptions are paper Table 2, all 12 cells of paper Fig. 4, and the two d=2000 rows of paper Fig. 5.</p>
+<p class="small">Environment: Python 3.12 everywhere; PyTorch 2.11.0+cu128 (A100 cluster) / 2.6.0+cu124 (RTX 4090 cluster); RMSprop; fp32; multi-GPU DDP. Accuracy sections use ≥5 seeds (0–4) per cell; the single-run exceptions are paper Table 2 and all 12 cells of paper Fig. 4.</p>
 
 </div></body>
 </html>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Paper Fig. 5 (Sec 4.4, full 3x4 layout mirroring the accepted paper):
-  row 1 (d=2000, r0 single-run curves, final configuration):
+  row 1 (d=2000, 5-seed mean curves with mean+-2SD bands):
     (a) HJB-2 diag  (b) HJB-2 manifold  (c) HJB-3 diag  (d) HJB-3 manifold
   row 2 (HJB-2, d=1e4): (e) manifold r0 curve, (f) Mart. loss vs iter,
     (g) Hamiltonian vs iter -- LINEAR y-axis fixed to [-0.5, 0.5],
@@ -8,9 +8,11 @@
   row 3 (HJB-3, d=1e4): (i) manifold r0 curve, (j)-(l) same histories.
   History panels: mean across 5 seeds; log-axis panels (Mart loss, RE)
   use the one-sided mean..mean+2SD band (paper caption: "mean + 2 x SD");
-  the linear-axis Hamiltonian panel uses mean+-2SD clipped to the fixed
-  range.
-Data: d2000 = 496285/496291 (lam1000+lr4x+I8000);
+  linear-axis panels (Hamiltonian, d=2000 value curves) use two-sided
+  mean+-2SD bands.
+Data: d2000 = 5 seeds each -- HJB-2 496285 (s0) + 534414/534417/534418/534419
+      (s1-4); HJB-3 496291 (s0) + 534420/534421/534422/534423 (s1-4)
+      (lam1000+lr4x+I8000);
       HJB-2 d1e4 = 496434 (seed0, the selected batch-64 scan arm)
                    + 500699/701/703/705 (seeds 1-4);
       HJB-3 d1e4 = 496436 (seed0, the selected batch-64 scan arm)
@@ -24,8 +26,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-D2000 = [('HJB-2', 'diag', 496285), ('HJB-2', 'manifold', 496285),
-         ('HJB-3', 'diag', 496291), ('HJB-3', 'manifold', 496291)]
+D2000 = [('HJB-2', 'diag', [496285, 534414, 534417, 534418, 534419]),
+         ('HJB-2', 'manifold', [496285, 534414, 534417, 534418, 534419]),
+         ('HJB-3', 'diag', [496291, 534420, 534421, 534422, 534423]),
+         ('HJB-3', 'manifold', [496291, 534420, 534421, 534422, 534423])]
 D1E4 = {'HJB-2': [496434, 500699, 500701, 500703, 500705],
         'HJB-3': [496436, 500700, 500702, 500704, 500706]}
 HAM_LIM = (-0.5, 0.5)
@@ -33,21 +37,34 @@ HAM_LIM = (-0.5, 0.5)
 fig, axes = plt.subplots(3, 4, figsize=(13.4, 9.6))
 rows = []
 
-# ---- row 1: d2000 r0 curves ------------------------------------------------
-for k, (eq, cv, j) in enumerate(D2000):
+# ---- row 1: d2000 curves, 5-seed mean +- 2SD -------------------------------
+for k, (eq, cv, jobs) in enumerate(D2000):
     ax = axes[0, k]
-    f = glob.glob(f'runs/{j}/outputs/*curve_{cv}.csv')[0]
-    df = pd.read_csv(f)
-    fh = [x for x in glob.glob(f'runs/{j}/outputs/*.csv') if 'curve' not in x][0]
-    re_f = pd.read_csv(fh).error.iloc[-1]
-    ax.plot(df.s, df.v_true, '-', color='#1f77b4', lw=1.5, label='exact')
-    ax.plot(df.s, df.v_pred, 'o', ms=2.2, color='#d62728', markevery=3,
+    vp, res = [], []
+    for j in jobs:
+        f = glob.glob(f'runs/{j}/outputs/*curve_{cv}.csv')[0]
+        vp.append(pd.read_csv(f).v_pred.to_numpy())
+        fh = [x for x in glob.glob(f'runs/{j}/outputs/*.csv')
+              if 'curve' not in x][0]
+        res.append(pd.read_csv(fh).error.iloc[-1])
+    df0 = pd.read_csv(glob.glob(f'runs/{jobs[0]}/outputs/*curve_{cv}.csv')[0])
+    m, sd = np.mean(vp, 0), np.std(vp, 0)
+    ax.plot(df0.s, df0.v_true, '-', color='#1f77b4', lw=1.5, label='exact')
+    ax.plot(df0.s, m, 'o', ms=2.2, color='#d62728', markevery=3,
             label='SOC-MartNet')
-    ax.set_title(rf'{eq}, $d=2000$, {cv}' + '\n' + rf'RE$={re_f:.2e}$',
+    ax.fill_between(df0.s, m - 2 * sd, m + 2 * sd, color='#d62728',
+                    alpha=0.25, label=r'mean$\pm$2SD (5 runs)')
+    ax.set_title(rf'{eq}, $d=2000$, {cv}' + '\n' +
+                 rf'RE$ = {np.mean(res):.2e} \pm {np.std(res, ddof=1):.1e}$',
                  fontsize=9)
     ax.grid(ls=':', alpha=0.5)
     ax.set_xlabel('$s$')
-    rows.append(dict(eq=eq, d=2000, curve=cv, jobid=j, RE=float(re_f)))
+    if k == 0:
+        ax.legend(fontsize=7, loc='best')
+    rows.append(dict(eq=eq, d=2000, curve=cv,
+                     jobid=';'.join(map(str, jobs)),
+                     RE=float(np.mean(res)),
+                     RE_sd=float(np.std(res, ddof=1))))
 
 # ---- rows 2-3: d1e4 per equation -------------------------------------------
 def d1e4_block(row, eq):
@@ -115,7 +132,10 @@ def d1e4_block(row, eq):
 d1e4_block(1, 'HJB-2')
 d1e4_block(2, 'HJB-3')
 
+import os
+OUT_DIR = os.environ.get('OUT_DIR', 'tmp_convfig/figs')
+os.makedirs(OUT_DIR, exist_ok=True)
 fig.tight_layout()
-fig.savefig('tmp_convfig/figs/fig5_hjb_highdim.png', dpi=200)
-pd.DataFrame(rows).to_csv('tmp_convfig/figs/fig5_hjb_highdim.csv', index=False)
+fig.savefig(f'{OUT_DIR}/fig5_hjb_highdim.png', dpi=200)
+pd.DataFrame(rows).to_csv(f'{OUT_DIR}/fig5_hjb_highdim.csv', index=False)
 print(pd.DataFrame(rows).to_string(index=False))

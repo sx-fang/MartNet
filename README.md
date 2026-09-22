@@ -40,7 +40,7 @@ The paper's preprint is available on arXiv: [https://arxiv.org/abs/2405.03169](h
 | `experiments/` | Exact producing command lines per experiment family (`experiments.csv`) + single-case reproduction scripts (headers state coverage / reference values / expected CSV line count) + the driver `reproduce_all.sh` + `smoke_test.sh` |
 | `results/` | Aggregate CSVs + the raw final-row extracts (`t2b_raw_final.txt`, `t1e*_raw_final.txt`) + `final_rows.csv` (per-run final-row evidence) |
 | `figures/` | Figure PNGs + per-figure summary-data CSVs |
-| `plots/` | Plotting/aggregation scripts: `plot_*.py` and `build_final_rows.py` / `build_s44_d1e4_agg.py` expect the archival `runs/<jobid>/outputs` layout; `build_t1e_final_table.py` / `build_t2b_agg.py` re-aggregate the raw extracts in `results/` (default: check against the shipped files without writing; `--write` regenerates) |
+| `plots/` | Plotting/aggregation scripts: `plot_*.py` and `build_final_rows.py` / `build_s44_d1e4_agg.py` / `build_s44_d2000_agg.py` expect the archival `runs/<jobid>/outputs` layout; `build_t1e_final_table.py` / `build_t2b_agg.py` re-aggregate the raw extracts in `results/` (default: check against the shipped files without writing; `--write` regenerates) |
 
 ## Reproduction guide
 
