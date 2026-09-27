@@ -224,6 +224,7 @@ Full command lines in the Table-2 rows (uniform 128) of <code>experiments/experi
 <p>This directory is <b>self-contained</b>: source code + command lines of all experiments + reference values + figures and plotting scripts. Directory layout:</p>
 <pre><code class="inpre">repository root (= the workdir)/
 ├── REPORT.html                # this report
+├── REPORT.pdf                 # print version of this report (regenerate: plots/build_report_pdf.py)
 ├── code/SOCMartNet-v3-refactored/
 │                              # reproduction code: entry run.py + the socmartnet package + tests/validation_anchors/
 ├── slurm/                     # frozen-copy submission channel (submit_job.sh + run_one.slurm)

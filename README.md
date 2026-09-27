@@ -4,7 +4,7 @@
 
 **Why this release:** After the paper's results were produced, and before its release as the initial codebase, the code evolved through several versions to improve its efficiency and applicability to a wider range of problems. As a result, the initial codebase is not fully consistent with the paper's description and instead more closely aligns with our companion paper's code (https://github.com/sx-fang/DRDM). This release resolves that discrepancy. The implementation was refactored from the original v3-era codebase, available in the preprint's TeX source at https://arxiv.org/src/2405.03169v3, to more faithfully reflect the paper's description.
 
-The package has been validated to reproduce the original results on SLURM clusters with 8 $\times$ A100 GPUs and on RTX 4090 GPUs for smaller-scale experiments. The reproduction report is available in `REPORT.html` (open it in a browser).
+The package has been validated to reproduce the original results on SLURM clusters with 8 $\times$ A100 GPUs and on RTX 4090 GPUs for smaller-scale experiments. The reproduction report is available in `REPORT.html` (open it in a browser); `REPORT.pdf` is the same report as a print/reading version.
 
 ## Summary
 
@@ -35,6 +35,7 @@ The paper's preprint is available on arXiv: [https://arxiv.org/abs/2405.03169](h
 | Path | Contents |
 |---|---|
 | `REPORT.html` | Summary report: all result tables, figures, parameter settings, reproduction guide |
+| `REPORT.pdf` | The same report as a print/reading version -- a derived artifact; regenerate with `python3 plots/build_report_pdf.py` after editing `REPORT.html` or its figures |
 | `code/SOCMartNet-v3-refactored/` | Reproduction code: entry `run.py` + the `socmartnet` package + `tests/validation_anchors/` (bit-level validation data) |
 | `slurm/` | Frozen-copy submission channel: `submit_job.sh` + `run_one.slurm` (a site template; see the reproduction guide) |
 | `experiments/` | Exact producing command lines per experiment family (`experiments.csv`) + single-case reproduction scripts (headers state coverage / reference values / expected CSV line count) + the driver `reproduce_all.sh` + `smoke_test.sh` |
